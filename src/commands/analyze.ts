@@ -24,15 +24,11 @@ export const analyzeCommand = new Command("analyze")
       const limit = parseInt(options.limit, 10);
       limitSchema.parse(limit);
 
-      // Analyze sitemap (use default path if not provided)
-      const sitemapPath = options.sitemap || "/sitemap.xml";
-      const results = await analyzeSitemap(url, sitemapPath);
-
-      // Limit results
-      const limitedResults = results.slice(0, limit);
+      // Analyze sitemap (defaults to /sitemap.xml if not provided)
+      const results = await analyzeSitemap(url, options.sitemap, limit);
 
       // Display results
-      for (const result of limitedResults) {
+      for (const result of results) {
         if (result.priority !== undefined) {
           console.log(`- ${result.url} ${result.priority}`);
         } else {

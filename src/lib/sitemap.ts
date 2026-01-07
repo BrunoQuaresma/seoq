@@ -6,6 +6,8 @@ export interface SitemapResult {
   priority?: number;
 }
 
+const DEFAULT_SITEMAP_PATH = "/sitemap.xml";
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "",
@@ -19,7 +21,7 @@ async function fetchSitemap(
 ): Promise<string> {
   const sitemapUrl = sitemapPath
     ? new URL(sitemapPath, url).toString()
-    : new URL("/sitemap.xml", url).toString();
+    : new URL(DEFAULT_SITEMAP_PATH, url).toString();
 
   const response = await fetch(sitemapUrl);
 
@@ -53,15 +55,21 @@ function isSitemapIndex(sitemap: unknown): boolean {
 
 async function analyzeSitemap(
   baseUrl: string,
-  sitemapPath?: string
+  sitemapPath: string = DEFAULT_SITEMAP_PATH,
+  limit: number = 25
 ): Promise<SitemapResult[]> {
   const results: SitemapResult[] = [];
   const visitedUrls = new Set<string>();
 
   async function processSitemap(url: string, path?: string): Promise<void> {
+    // Check limit before processing
+    if (results.length >= limit) {
+      return;
+    }
+
     const sitemapUrl = path
       ? new URL(path, url).toString()
-      : new URL("/sitemap.xml", url).toString();
+      : new URL(DEFAULT_SITEMAP_PATH, url).toString();
 
     if (visitedUrls.has(sitemapUrl)) {
       return;
@@ -78,6 +86,10 @@ async function analyzeSitemap(
         : [index.sitemapindex.sitemap];
 
       for (const sitemapEntry of sitemaps) {
+        // Check limit before processing each sitemap index entry
+        if (results.length >= limit) {
+          return;
+        }
         const sitemapUrlObj = new URL(sitemapEntry.loc);
         await processSitemap(sitemapUrlObj.origin, sitemapUrlObj.pathname);
       }
@@ -88,6 +100,10 @@ async function analyzeSitemap(
         : [sitemap.urlset.url];
 
       for (const urlEntry of urls) {
+        // Check limit before processing each URL entry
+        if (results.length >= limit) {
+          return;
+        }
         results.push({
           url: urlEntry.loc,
           priority: urlEntry.priority,
