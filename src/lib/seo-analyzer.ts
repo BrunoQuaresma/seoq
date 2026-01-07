@@ -120,7 +120,7 @@ Analyze this page for common SEO issues including:
 - Other SEO best practices
 
 IMPORTANT REQUIREMENTS:
-- Return AT MOST 5 issues, prioritized by impact (most important first)
+- Return AT MOST 3 issues, prioritized by impact (most important first)
 - Each "issue" must be ONE SHORT SENTENCE describing the problem clearly
 - Each "howToFix" must be ONE SHORT SENTENCE with specific, actionable advice
 - Use simple, direct language without bullets, prefixes, or multiple sentences
@@ -151,8 +151,8 @@ If no issues are found, return an empty issues array.`;
         : undefined;
     const validated = SEOAnalysisResultSchema.parse(structuredUnknown);
 
-    // Post-process: cap at 5 issues and normalize to single sentences
-    const normalizedIssues = validated.issues.slice(0, 5).map((issue) => ({
+    // Post-process: cap at 3 issues and normalize to single sentences
+    const normalizedIssues = validated.issues.slice(0, 3).map((issue) => ({
       issue: normalizeSentence(issue.issue),
       severity: issue.severity,
       howToFix: normalizeSentence(issue.howToFix),
