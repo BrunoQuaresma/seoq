@@ -1,0 +1,29 @@
+{
+  "name": "seoq",
+  "version": "1.0.0",
+  "description": "A TypeScript CLI tool built with commander",
+  "main": "dist/index.js",
+  "bin": {
+    "seoq": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node --watch src/index.ts"
+  },
+  "keywords": [
+    "cli",
+    "commander"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}
+
