@@ -1,4 +1,6 @@
 import { Command } from "commander";
+import ora, { type Ora } from "ora";
+import chalk from "chalk";
 import { analyzeSitemap } from "../lib/sitemap";
 import { analyzePages } from "../lib/seo-analyzer";
 import { urlSchema, limitSchema } from "../lib/schemas";
@@ -26,6 +28,9 @@ export const analyzeCommand = new Command("analyze")
       url: string,
       options: { sitemap?: string; limit: string; concurrency: string }
     ) => {
+      let sitemapSpinner: Ora | null = null;
+      let analysisSpinner: Ora | null = null;
+
       try {
         // Validate URL
         urlSchema.parse(url);
@@ -40,10 +45,13 @@ export const analyzeCommand = new Command("analyze")
           throw new Error("Concurrency must be at least 1");
         }
 
-        // Log sitemap fetching
+        // Fetch sitemap with spinner
         const sitemapPath = options.sitemap || "/sitemap.xml";
         const sitemapUrl = new URL(sitemapPath, url).toString();
-        console.log(`Fetching sitemap from ${sitemapUrl}...`);
+        sitemapSpinner = ora({
+          text: chalk.cyan(`Fetching sitemap from ${sitemapUrl}...`),
+          spinner: "dots",
+        }).start();
 
         // Analyze sitemap (defaults to /sitemap.xml if not provided)
         const sitemapResults = await analyzeSitemap(
@@ -55,26 +63,55 @@ export const analyzeCommand = new Command("analyze")
         // Extract URLs from sitemap results
         const urls = sitemapResults.map((result) => result.url);
 
-        // Log sitemap found
-        console.log(`Found ${urls.length} pages to analyze\n`);
+        sitemapSpinner.succeed(
+          chalk.green(
+            `Found ${chalk.bold(urls.length)} page${urls.length !== 1 ? "s" : ""} to analyze`
+          )
+        );
+        sitemapSpinner = null;
 
-        // Analyze pages for SEO issues with progress logging
+        // Analyze pages for SEO issues with spinner
+        let completedCount = 0;
+        const total = urls.length;
+
+        analysisSpinner = ora({
+          text: chalk.cyan(
+            `Starting analysis of ${chalk.bold(total)} page${total !== 1 ? "s" : ""}...`
+          ),
+          spinner: "dots",
+        }).start();
+
         const analysisResults = await analyzePages(urls, {
           concurrency,
           onProgress: (current, total, pageUrl) => {
-            console.log(`Analyzing page ${current} of ${total}: ${pageUrl}`);
+            if (analysisSpinner) {
+              analysisSpinner.text = chalk.cyan(
+                `Analyzing page ${chalk.bold(current)} of ${chalk.bold(total)}: ${chalk.gray(pageUrl)}`
+              );
+            }
           },
           onComplete: (pageUrl, issueCount) => {
-            console.log(
-              `✓ Completed: ${pageUrl} (${issueCount} issue${issueCount !== 1 ? "s" : ""} found)`
-            );
+            completedCount++;
+            const issueText =
+              issueCount === 0
+                ? chalk.green("no issues")
+                : issueCount === 1
+                  ? chalk.yellow(`${issueCount} issue`)
+                  : chalk.yellow(`${issueCount} issues`);
+            if (analysisSpinner) {
+              analysisSpinner.text = chalk.cyan(
+                `Completed ${chalk.bold(completedCount)}/${chalk.bold(total)}: ${chalk.gray(pageUrl)} (${issueText})`
+              );
+            }
           },
         });
 
-        // Log final summary
-        console.log(
-          `\nAnalysis complete. Processed ${analysisResults.length} pages.`
+        analysisSpinner.succeed(
+          chalk.green(
+            `Analysis complete. Processed ${chalk.bold(analysisResults.length)} page${analysisResults.length !== 1 ? "s" : ""}.`
+          )
         );
+        analysisSpinner = null;
 
         // Display results in the specified format
         console.log(); // Empty line before results
@@ -85,24 +122,47 @@ export const analyzeCommand = new Command("analyze")
           }
 
           // Display URL
-          console.log(result.url);
+          console.log(chalk.bold.underline(result.url));
 
           // Display each issue
           for (const issue of result.issues) {
-            console.log(`- Issue: ${issue.issue}`);
-            console.log(`- Severity: ${issue.severity}`);
-            console.log(`- How to fix: ${issue.howToFix}`);
+            const severityColor =
+              issue.severity === "High"
+                ? chalk.red
+                : issue.severity === "Medium"
+                  ? chalk.yellow
+                  : chalk.blue;
+            console.log(
+              chalk.gray("-") +
+                ` ${chalk.bold("Issue:")} ${chalk.white(issue.issue)}`
+            );
+            console.log(
+              chalk.gray("-") +
+                ` ${chalk.bold("Severity:")} ${severityColor(issue.severity)}`
+            );
+            console.log(
+              chalk.gray("-") +
+                ` ${chalk.bold("How to fix:")} ${chalk.white(issue.howToFix)}`
+            );
           }
 
           // Empty line between different URLs
           console.log();
         }
       } catch (error) {
+        // Stop any running spinners
+        if (sitemapSpinner) {
+          sitemapSpinner.stop();
+        }
+        if (analysisSpinner) {
+          analysisSpinner.stop();
+        }
+
         if (error instanceof Error) {
-          console.error(`Error: ${error.message}`);
+          console.error(chalk.red(`\nError: ${error.message}`));
           process.exit(1);
         } else {
-          console.error("An unknown error occurred");
+          console.error(chalk.red("\nAn unknown error occurred"));
           process.exit(1);
         }
       }
