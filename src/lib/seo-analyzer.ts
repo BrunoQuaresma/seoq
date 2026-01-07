@@ -26,6 +26,26 @@ export interface PageAnalysisResult {
   issues: SEOIssue[];
 }
 
+/**
+ * Normalize a string to a single short sentence:
+ * - Trim whitespace
+ * - Collapse multiple spaces/newlines into single spaces
+ * - Extract only the first sentence (up to first period, question mark, or exclamation)
+ */
+function normalizeSentence(text: string): string {
+  // Trim and collapse whitespace
+  const normalized = text.trim().replace(/\s+/g, " ");
+
+  // Extract first sentence (stop at . ? !)
+  const match = normalized.match(/^[^.!?]+[.!?]?/);
+  if (match) {
+    return match[0].trim();
+  }
+
+  // If no sentence-ending punctuation found, return the whole normalized text
+  return normalized;
+}
+
 async function fetchPageContent(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -99,10 +119,12 @@ Analyze this page for common SEO issues including:
 - Missing canonical URLs
 - Other SEO best practices
 
-For each issue found, provide:
-- "issue": A clear description of the SEO issue
+IMPORTANT REQUIREMENTS:
+- Return AT MOST 5 issues, prioritized by impact (most important first)
+- Each "issue" must be ONE SHORT SENTENCE describing the problem clearly
+- Each "howToFix" must be ONE SHORT SENTENCE with specific, actionable advice
+- Use simple, direct language without bullets, prefixes, or multiple sentences
 - "severity": "High", "Medium", or "Low"
-- "howToFix": Specific, actionable advice on how to fix the issue
 
 If no issues are found, return an empty issues array.`;
 
@@ -128,7 +150,15 @@ If no issues are found, return an empty issues array.`;
         ? (result as { structuredResponse?: unknown }).structuredResponse
         : undefined;
     const validated = SEOAnalysisResultSchema.parse(structuredUnknown);
-    return validated.issues;
+
+    // Post-process: cap at 5 issues and normalize to single sentences
+    const normalizedIssues = validated.issues.slice(0, 5).map((issue) => ({
+      issue: normalizeSentence(issue.issue),
+      severity: issue.severity,
+      howToFix: normalizeSentence(issue.howToFix),
+    }));
+
+    return normalizedIssues;
   } catch (error) {
     if (error instanceof Error) {
       // Handle rate limit errors
