@@ -1,0 +1,103 @@
+import { XMLParser } from "fast-xml-parser";
+import { sitemapSchema, sitemapIndexSchema } from "./schemas";
+
+export interface SitemapResult {
+  url: string;
+  priority?: number;
+}
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "",
+  textNodeName: "#text",
+  parseTagValue: true,
+});
+
+async function fetchSitemap(
+  url: string,
+  sitemapPath?: string
+): Promise<string> {
+  const sitemapUrl = sitemapPath
+    ? new URL(sitemapPath, url).toString()
+    : new URL("/sitemap.xml", url).toString();
+
+  const response = await fetch(sitemapUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch sitemap: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.text();
+}
+
+function parseSitemap(xml: string): unknown {
+  try {
+    return parser.parse(xml);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse XML: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}
+
+function isSitemapIndex(sitemap: unknown): boolean {
+  try {
+    sitemapIndexSchema.parse(sitemap);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function analyzeSitemap(
+  baseUrl: string,
+  sitemapPath?: string
+): Promise<SitemapResult[]> {
+  const results: SitemapResult[] = [];
+  const visitedUrls = new Set<string>();
+
+  async function processSitemap(url: string, path?: string): Promise<void> {
+    const sitemapUrl = path
+      ? new URL(path, url).toString()
+      : new URL("/sitemap.xml", url).toString();
+
+    if (visitedUrls.has(sitemapUrl)) {
+      return;
+    }
+    visitedUrls.add(sitemapUrl);
+
+    const xml = await fetchSitemap(url, path);
+    const parsed = parseSitemap(xml);
+
+    if (isSitemapIndex(parsed)) {
+      const index = sitemapIndexSchema.parse(parsed);
+      const sitemaps = Array.isArray(index.sitemapindex.sitemap)
+        ? index.sitemapindex.sitemap
+        : [index.sitemapindex.sitemap];
+
+      for (const sitemapEntry of sitemaps) {
+        const sitemapUrlObj = new URL(sitemapEntry.loc);
+        await processSitemap(sitemapUrlObj.origin, sitemapUrlObj.pathname);
+      }
+    } else {
+      const sitemap = sitemapSchema.parse(parsed);
+      const urls = Array.isArray(sitemap.urlset.url)
+        ? sitemap.urlset.url
+        : [sitemap.urlset.url];
+
+      for (const urlEntry of urls) {
+        results.push({
+          url: urlEntry.loc,
+          priority: urlEntry.priority,
+        });
+      }
+    }
+  }
+
+  await processSitemap(baseUrl, sitemapPath);
+  return results;
+}
+
+export { analyzeSitemap };

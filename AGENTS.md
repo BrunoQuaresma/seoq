@@ -63,6 +63,8 @@ After completing a task, agents must:
 1. **Verify lint errors**: Run `npm run lint` to check for any ESLint errors
 2. **Format code**: Run `npm run format` to format all code files with Prettier
 3. **Re-check lint errors**: Run `npm run lint` again to ensure no lint errors remain after formatting
-4. **Ensure clean state**: The task is only considered complete when there are no lint errors and all files are properly formatted
+4. **Build the code**: Run `npm run build` to compile TypeScript and verify the build succeeds
+5. **Fix build issues**: If the build fails, fix any TypeScript compilation errors or other build issues
+6. **Ensure clean state**: The task is only considered complete when there are no lint errors, all files are properly formatted, and the build succeeds without errors
 
-This ensures consistent code quality and formatting across the project.
+This ensures consistent code quality, formatting, and that the code compiles successfully across the project.
