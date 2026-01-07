@@ -22,12 +22,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@langchain/openai": "^1.2.1",
+    "cheerio": "^1.1.2",
     "commander": "^12.1.0",
     "fast-xml-parser": "^4.3.5",
+    "langchain": "^1.2.6",
+    "p-limit": "^7.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/cheerio": "^0.22.35",
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
