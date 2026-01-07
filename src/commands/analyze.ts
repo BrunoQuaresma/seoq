@@ -123,6 +123,7 @@ export const analyzeCommand = new Command("analyze")
 
           // Display URL
           console.log(chalk.bold.underline(result.url));
+          console.log();
 
           // Display each issue
           for (const issue of result.issues) {
@@ -133,17 +134,10 @@ export const analyzeCommand = new Command("analyze")
                   ? chalk.yellow
                   : chalk.blue;
             console.log(
-              chalk.gray("-") +
-                ` ${chalk.bold("Issue:")} ${chalk.white(issue.issue)}`
+              `${severityColor(chalk.bold(issue.severity))} ${chalk.white(issue.issue)}`
             );
-            console.log(
-              chalk.gray("-") +
-                ` ${chalk.bold("Severity:")} ${severityColor(issue.severity)}`
-            );
-            console.log(
-              chalk.gray("-") +
-                ` ${chalk.bold("How to fix:")} ${chalk.white(issue.howToFix)}`
-            );
+            console.log(chalk.gray(issue.howToFix));
+            console.log();
           }
 
           // Empty line between different URLs
