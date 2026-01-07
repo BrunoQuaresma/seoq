@@ -128,9 +128,6 @@ IMPORTANT REQUIREMENTS:
 
 If no issues are found, return an empty issues array.`;
 
-    // TypeScript has issues with deep type inference for Zod schemas in providerStrategy
-    // This is a known limitation - the schema is still validated at runtime with Zod
-    // @ts-expect-error - Type instantiation is excessively deep (TS2589)
     const responseFormat = providerStrategy(SEOAnalysisResultSchema);
 
     const agent = createAgent({

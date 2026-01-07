@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import { sitemapSchema, sitemapIndexSchema } from "./schemas";
+import { sitemapSchema, sitemapIndexSchema } from "./schemas.js";
 
 export interface SitemapResult {
   url: string;

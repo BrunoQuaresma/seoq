@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import ora, { type Ora } from "ora";
 import chalk from "chalk";
-import { analyzeSitemap } from "../lib/sitemap";
-import { analyzePages } from "../lib/seo-analyzer";
-import { urlSchema, limitSchema } from "../lib/schemas";
+import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
+import { analyzePages } from "../lib/seo-analyzer.js";
+import { urlSchema, limitSchema } from "../lib/schemas.js";
 
 export const analyzeCommand = new Command("analyze")
   .description("Analyze a website's sitemap.xml for SEO issues")
@@ -61,7 +61,7 @@ export const analyzeCommand = new Command("analyze")
         );
 
         // Extract URLs from sitemap results
-        const urls = sitemapResults.map((result) => result.url);
+        const urls = sitemapResults.map((result: SitemapResult) => result.url);
 
         sitemapSpinner.succeed(
           chalk.green(
@@ -83,14 +83,14 @@ export const analyzeCommand = new Command("analyze")
 
         const analysisResults = await analyzePages(urls, {
           concurrency,
-          onProgress: (current, total, pageUrl) => {
+          onProgress: (current: number, total: number, pageUrl: string) => {
             if (analysisSpinner) {
               analysisSpinner.text = chalk.cyan(
                 `Analyzing page ${chalk.bold(current)} of ${chalk.bold(total)}: ${chalk.gray(pageUrl)}`
               );
             }
           },
-          onComplete: (pageUrl, issueCount) => {
+          onComplete: (pageUrl: string, issueCount: number) => {
             completedCount++;
             const issueText =
               issueCount === 0

@@ -1,6 +1,7 @@
 {
   "name": "seoq",
   "version": "1.0.0",
+  "type": "module",
   "description": "A TypeScript CLI tool built with commander",
   "main": "dist/index.js",
   "bin": {
