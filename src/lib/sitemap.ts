@@ -33,8 +33,6 @@ export interface SitemapResult {
   priority?: number;
 }
 
-const DEFAULT_SITEMAP_PATH = "/sitemap.xml";
-
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "",
@@ -42,14 +40,7 @@ const parser = new XMLParser({
   parseTagValue: true,
 });
 
-async function fetchSitemap(
-  url: string,
-  sitemapPath?: string
-): Promise<string> {
-  const sitemapUrl = sitemapPath
-    ? new URL(sitemapPath, url).toString()
-    : new URL(DEFAULT_SITEMAP_PATH, url).toString();
-
+async function fetchSitemap(sitemapUrl: string): Promise<string> {
   const response = await fetch(sitemapUrl);
 
   if (!response.ok) {
@@ -81,29 +72,24 @@ function isSitemapIndex(sitemap: unknown): boolean {
 }
 
 async function analyzeSitemap(
-  baseUrl: string,
-  sitemapPath: string = DEFAULT_SITEMAP_PATH,
+  sitemapUrl: string,
   limit: number = 25
 ): Promise<SitemapResult[]> {
   const results: SitemapResult[] = [];
   const visitedUrls = new Set<string>();
 
-  async function processSitemap(url: string, path?: string): Promise<void> {
+  async function processSitemap(sitemapUrl: string): Promise<void> {
     // Check limit before processing
     if (results.length >= limit) {
       return;
     }
-
-    const sitemapUrl = path
-      ? new URL(path, url).toString()
-      : new URL(DEFAULT_SITEMAP_PATH, url).toString();
 
     if (visitedUrls.has(sitemapUrl)) {
       return;
     }
     visitedUrls.add(sitemapUrl);
 
-    const xml = await fetchSitemap(url, path);
+    const xml = await fetchSitemap(sitemapUrl);
     const parsed = parseSitemap(xml);
 
     if (isSitemapIndex(parsed)) {
@@ -117,8 +103,7 @@ async function analyzeSitemap(
         if (results.length >= limit) {
           return;
         }
-        const sitemapUrlObj = new URL(sitemapEntry.loc);
-        await processSitemap(sitemapUrlObj.origin, sitemapUrlObj.pathname);
+        await processSitemap(sitemapEntry.loc);
       }
     } else {
       const sitemap = sitemapSchema.parse(parsed);
@@ -139,7 +124,7 @@ async function analyzeSitemap(
     }
   }
 
-  await processSitemap(baseUrl, sitemapPath);
+  await processSitemap(sitemapUrl);
   return results;
 }
 
