@@ -123,8 +123,8 @@ Analyze this page for common SEO issues including:
 IMPORTANT REQUIREMENTS:
 - All responses must be in English, regardless of the language of the analyzed page content
 - Return AT MOST 3 issues, prioritized by impact (most important first)
-- Each "issue" must be ONE SHORT SENTENCE describing the problem clearly
-- Each "howToFix" must be ONE SHORT SENTENCE with specific, actionable advice
+- Each "issue" must be just a few words describing the problem clearly
+- Each "howToFix" must be a very compact and small sentence with specific, actionable advice
 - Use simple, direct language without bullets, prefixes, or multiple sentences
 - "severity": "High", "Medium", or "Low"
 
