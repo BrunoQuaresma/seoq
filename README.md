@@ -113,12 +113,12 @@ npx seoq analyze https://example.com --sitemap --limit 50 --concurrency 3 --max-
 https://example.com/about
 
 ┌─────────┬────────────────────────────────────────────────────────────────────────────────┐
-│ High    │ Duplicate title tag                                                             │
-│         │ Ensure each page has a unique title tag that accurately describes its content.  │
+│ High    │ Duplicate title tag                                                            │
+│         │ Ensure each page has a unique title tag that accurately describes its content. │
 ├─────────┼────────────────────────────────────────────────────────────────────────────────┤
-│ Medium  │ Missing Open Graph tags                                                         │
+│ Medium  │ Missing Open Graph tags                                                        │
 │         │ Add Open Graph meta tags (og:title, og:description, og:image) for better       │
-│         │ social media sharing.                                                           │
+│         │ social media sharing.                                                          │
 └─────────┴────────────────────────────────────────────────────────────────────────────────┘
 
 https://example.com/contact
@@ -161,27 +161,22 @@ npx seoq compare https://mysite.com https://competitor.com
 ✔ Comparison complete. Found 5 insights.
 
 ┌──────────────────────────────────────────────────────────────────────┬────────────┐
-│ Insight                                                               │ Relevance  │
+│ Insight                                                              │ Relevance  │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Better meta descriptions                                              │ 0.9        │
-│ The competitor uses more compelling and keyword-rich meta             │            │
-│ descriptions that improve click-through rates.                        │            │
+│ Better meta descriptions - The competitor uses more compelling and   │ 0.9        │
+│ keyword-rich meta descriptions that improve click-through rates.     │            │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Improved heading structure                                            │ 0.8        │
-│ The competitor has a clearer H1-H6 hierarchy that better organizes    │            │
-│ content and improves readability.                                    │            │
+│ Improved heading structure - The competitor has a clearer H1-H6      │ 0.8        │
+│ hierarchy that better organizes content and improves readability.    │            │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Enhanced image optimization                                           │ 0.7        │
-│ All images on the competitor site have descriptive alt text and       │            │
-│ optimized file names.                                                 │            │
+│ Enhanced image optimization - All images on the competitor site have │ 0.7        │
+│ descriptive alt text and optimized file names.                       │            │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Better internal linking                                               │ 0.6        │
-│ The competitor uses more strategic internal links that improve       │            │
-│ site navigation and SEO value.                                        │            │
+│ Better internal linking - The competitor uses more strategic         │ 0.6        │
+│ internal links that improve site navigation and SEO value.           │            │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Structured data implementation                                       │ 0.5        │
-│ The competitor implements JSON-LD structured data for better search    │            │
-│ engine understanding.                                                 │            │
+│ Structured data implementation - The competitor implements JSON-LD   │ 0.5        │
+│ structured data for better search engine understanding.              │            │
 └──────────────────────────────────────────────────────────────────────┴────────────┘
 ```
 
@@ -199,15 +194,13 @@ npx seoq compare https://mysite.com https://competitor.com --keywords "SEO tools
 ✔ Comparison complete. Found 4 insights.
 
 ┌──────────────────────────────────────────────────────────────────────┬────────────┐
-│ Insight                                                               │ Relevance  │
+│ Insight                                                              │ Relevance  │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Better keyword optimization                                           │ 0.9        │
-│ The competitor more effectively integrates target keywords into      │            │
-│ headings, content, and meta tags.                                    │            │
+│ Better keyword optimization - The competitor more effectively        │ 0.9        │
+│ integrates target keywords into headings, content, and meta tags.    │            │
 ├──────────────────────────────────────────────────────────────────────┼────────────┤
-│ Improved content depth                                                │ 0.8        │
-│ The competitor provides more comprehensive content covering the       │            │
-│ target keywords in greater detail.                                   │            │
+│ Improved content depth - The competitor provides more comprehensive  │ 0.8        │
+│ content covering the target keywords in greater detail.              │            │
 └──────────────────────────────────────────────────────────────────────┴────────────┘
 ```
 
@@ -237,13 +230,13 @@ npx seoq competitors https://example.com
 ✔ Competitor analysis complete for https://example.com.
 
 ┌─────────────────────────┬──────────────────────────────────────────┬────────────┐
-│ Competitor              │ Website                                   │ Relevance  │
+│ Competitor              │ Website                                  │ Relevance  │
 ├─────────────────────────┼──────────────────────────────────────────┼────────────┤
-│ CompetitorCorp          │ https://competitorcorp.com                │ 0.9        │
-│ RivalInc               │ https://rivalinc.com                      │ 0.8        │
-│ MarketLeader           │ https://marketleader.io                    │ 0.7        │
-│ AlternativeSolutions   │ https://alternativesolutions.com          │ 0.6        │
-│ SimilarService         │ https://similarservice.net                 │ 0.5        │
+│ CompetitorCorp          │ https://competitorcorp.com               │ 0.9        │
+│ RivalInc                │ https://rivalinc.com                     │ 0.8        │
+│ MarketLeader            │ https://marketleader.io                  │ 0.7        │
+│ AlternativeSolutions    │ https://alternativesolutions.com         │ 0.6        │
+│ SimilarService          │ https://similarservice.net               │ 0.5        │
 └─────────────────────────┴──────────────────────────────────────────┴────────────┘
 ```
 
@@ -282,7 +275,7 @@ npx seoq keywords https://example.com/blog/seo-tips
 │ 0.7        │ keyword research                                                             │
 │ 0.6        │ on-page SEO                                                                  │
 │ 0.5        │ meta tags                                                                    │
-│ 0.4        │ content optimization                                                          │
+│ 0.4        │ content optimization                                                         │
 │ 0.3        │ Google ranking                                                               │
 │ 0.2        │ website traffic                                                              │
 └────────────┴──────────────────────────────────────────────────────────────────────────────┘
