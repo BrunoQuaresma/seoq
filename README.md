@@ -2,7 +2,7 @@
 
 A powerful command-line tool for SEO analysis, comparison, and optimization. SEOQ helps you analyze websites, compare them with competitors, extract keywords, and identify SEO improvement opportunities using AI-powered analysis.
 
-[![SEOQ demo video](./demo-thumb.png)](./demo.mp4)
+https://github.com/user-attachments/assets/1d81a4e2-6000-41c5-8967-aca50b6cd4db
 
 ## Usage
 
