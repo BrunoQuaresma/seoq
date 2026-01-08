@@ -117,6 +117,7 @@ export const analyzeCommand = new Command("analyze")
             // Create table without headers
             const table = new Table({
               wordWrap: true,
+              colWidths: [8, 80],
             });
 
             // Add rows for each issue
