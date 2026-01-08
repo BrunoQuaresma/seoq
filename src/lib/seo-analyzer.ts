@@ -1,3 +1,4 @@
+import { ChatOpenAI } from "@langchain/openai";
 import * as cheerio from "cheerio";
 import { createAgent, providerStrategy } from "langchain";
 import pLimit from "p-limit";
@@ -120,6 +121,7 @@ Analyze this page for common SEO issues including:
 - Other SEO best practices
 
 IMPORTANT REQUIREMENTS:
+- All responses must be in English, regardless of the language of the analyzed page content
 - Return AT MOST 3 issues, prioritized by impact (most important first)
 - Each "issue" must be ONE SHORT SENTENCE describing the problem clearly
 - Each "howToFix" must be ONE SHORT SENTENCE with specific, actionable advice
@@ -131,7 +133,7 @@ If no issues are found, return an empty issues array.`;
     const responseFormat = providerStrategy(SEOAnalysisResultSchema);
 
     const agent = createAgent({
-      model: "gpt-5",
+      model: new ChatOpenAI({ model: "gpt-5.2" }),
       tools: [],
       responseFormat,
     });
