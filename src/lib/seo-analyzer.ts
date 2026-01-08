@@ -191,6 +191,26 @@ If no issues are found, return an empty issues array.`;
   }
 }
 
+/**
+ * Analyzes a single page for SEO issues.
+ *
+ * @param url - The URL of the page to analyze
+ * @param maxIssues - Maximum number of issues to return per page
+ * @param browser - Optional browser instance to reuse. If not provided, a new browser will be launched and closed automatically.
+ * @returns Promise resolving to the analysis result for the page
+ * @throws Error if page fetch or analysis fails
+ */
+export async function analyzePage(
+  url: string,
+  maxIssues: number = 3,
+  browser?: Browser
+): Promise<PageAnalysisResult> {
+  const rawHtml = await fetchPageContent(url, browser);
+  const html = cleanHtmlForSEO(rawHtml);
+  const issues = await analyzeSEOIssues(url, html, maxIssues);
+  return { url, issues };
+}
+
 export async function analyzePages(
   urls: string[],
   options: {
@@ -212,21 +232,22 @@ export async function analyzePages(
     // Create a single browser instance to reuse across all pages
     browser = await launchBrowser();
 
-    const analyzePage = async (url: string, index: number): Promise<void> => {
+    const analyzePageWithErrorHandling = async (
+      url: string,
+      index: number
+    ): Promise<void> => {
       try {
         // Report progress when starting
         if (options.onProgress) {
           options.onProgress(index + 1, total, url);
         }
 
-        const rawHtml = await fetchPageContent(url, browser);
-        const html = cleanHtmlForSEO(rawHtml);
-        const issues = await analyzeSEOIssues(url, html, maxIssues);
-        results.push({ url, issues });
+        const result = await analyzePage(url, maxIssues, browser);
+        results.push(result);
 
         // Report completion
         if (options.onComplete) {
-          options.onComplete(url, issues.length);
+          options.onComplete(url, result.issues.length);
         }
       } catch (error) {
         // If page fetch or analysis fails, still add result with error issue
@@ -279,7 +300,9 @@ export async function analyzePages(
 
     // Process all URLs with concurrency limit
     await Promise.all(
-      urls.map((url, index) => limit(() => analyzePage(url, index)))
+      urls.map((url, index) =>
+        limit(() => analyzePageWithErrorHandling(url, index))
+      )
     );
   } catch (error) {
     // Re-throw critical errors (e.g., browser launch failures)

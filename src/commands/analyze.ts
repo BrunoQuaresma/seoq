@@ -4,7 +4,11 @@ import Table from "cli-table3";
 import { type Ora } from "ora";
 import * as z from "zod";
 import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
-import { analyzePages, type PageAnalysisResult } from "../lib/seo-analyzer.js";
+import {
+  analyzePage,
+  analyzePages,
+  type PageAnalysisResult,
+} from "../lib/seo-analyzer.js";
 import { createSpinner, updateSpinner, stopSpinners } from "../lib/spinner.js";
 
 // Single unified Zod schema for analyze options
@@ -75,18 +79,10 @@ async function analyzeSinglePage(
   const spinner = createSpinner(`Analyzing page ${chalk.bold(url)}...`);
 
   try {
-    const analysisResults = await analyzePages([url], {
-      maxIssues,
-      onProgress: () => {
-        // No progress updates needed for single page
-      },
-      onComplete: () => {
-        // No completion updates needed for single page
-      },
-    });
+    const analysisResult = await analyzePage(url, maxIssues);
 
     spinner.succeed(chalk.green(`Analysis complete for ${chalk.bold(url)}.`));
-    return analysisResults;
+    return [analysisResult];
   } catch (error) {
     spinner.stop();
     throw error;
