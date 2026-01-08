@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import ora, { type Ora } from "ora";
 import chalk from "chalk";
+import Table from "cli-table3";
 import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
 import { analyzePages } from "../lib/seo-analyzer.js";
 import { urlSchema, limitSchema } from "../lib/schemas.js";
@@ -102,7 +103,12 @@ export const analyzeCommand = new Command("analyze")
             console.log(chalk.bold.underline(result.url));
             console.log();
 
-            // Display each issue
+            // Create table without headers
+            const table = new Table({
+              wordWrap: true,
+            });
+
+            // Add rows for each issue
             for (const issue of result.issues) {
               const severityColor =
                 issue.severity === "High"
@@ -110,12 +116,12 @@ export const analyzeCommand = new Command("analyze")
                   : issue.severity === "Medium"
                     ? chalk.yellow
                     : chalk.blue;
-              console.log(
-                `${severityColor(chalk.bold(issue.severity))} ${chalk.white(issue.issue)}`
-              );
-              console.log(chalk.gray(issue.howToFix));
-              console.log();
+              const issueWithFix = `${issue.issue}\n${chalk.gray(issue.howToFix)}`;
+              table.push([severityColor(issue.severity), issueWithFix]);
             }
+
+            // Display table
+            console.log(table.toString());
 
             // Empty line between different URLs
             console.log();
@@ -216,7 +222,12 @@ export const analyzeCommand = new Command("analyze")
           console.log(chalk.bold.underline(result.url));
           console.log();
 
-          // Display each issue
+          // Create table without headers
+          const table = new Table({
+            wordWrap: true,
+          });
+
+          // Add rows for each issue
           for (const issue of result.issues) {
             const severityColor =
               issue.severity === "High"
@@ -224,12 +235,12 @@ export const analyzeCommand = new Command("analyze")
                 : issue.severity === "Medium"
                   ? chalk.yellow
                   : chalk.blue;
-            console.log(
-              `${severityColor(chalk.bold(issue.severity))} ${chalk.white(issue.issue)}`
-            );
-            console.log(chalk.gray(issue.howToFix));
-            console.log();
+            const issueWithFix = `${issue.issue}\n${chalk.gray(issue.howToFix)}`;
+            table.push([severityColor(issue.severity), issueWithFix]);
           }
+
+          // Display table
+          console.log(table.toString());
 
           // Empty line between different URLs
           console.log();
