@@ -68,13 +68,13 @@ https://example.com
 
 ┌─────────┬────────────────────────────────────────────────────────────────────────────────┐
 │ High    │ Missing meta description                                                       │
-│         │ Add a unique meta description tag between 120-160 characters that summarizes  │
+│         │ Add a unique meta description tag between 120-160 characters that summarizes   │
 │         │ the page content.                                                              │
 ├─────────┼────────────────────────────────────────────────────────────────────────────────┤
-│ Medium  │ Missing H1 tag                                                                  │
+│ Medium  │ Missing H1 tag                                                                 │
 │         │ Add a single H1 tag that clearly describes the main topic of the page.         │
 ├─────────┼────────────────────────────────────────────────────────────────────────────────┤
-│ Low     │ Missing alt text on images                                                      │
+│ Low     │ Missing alt text on images                                                     │
 │         │ Add descriptive alt attributes to all images for better accessibility and SEO. │
 └─────────┴────────────────────────────────────────────────────────────────────────────────┘
 ```
