@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import { analyzeCommand } from "./commands/analyze.js";
+import { keywordsCommand } from "./commands/keywords.js";
 
 const program = new Command();
 
@@ -11,5 +12,6 @@ program
   .version("1.0.0");
 
 program.addCommand(analyzeCommand);
+program.addCommand(keywordsCommand);
 
 program.parse();
