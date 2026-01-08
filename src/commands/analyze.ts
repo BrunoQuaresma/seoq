@@ -2,9 +2,13 @@ import { Command } from "commander";
 import ora, { type Ora } from "ora";
 import chalk from "chalk";
 import Table from "cli-table3";
+import * as z from "zod";
 import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
 import { analyzePages } from "../lib/seo-analyzer.js";
-import { urlSchema, limitSchema, maxIssuesSchema } from "../lib/schemas.js";
+
+const urlSchema = z.string().url();
+const limitSchema = z.number().int().min(1).max(100);
+const maxIssuesSchema = z.number().int().min(1).max(50);
 
 export const analyzeCommand = new Command("analyze")
   .description("Analyze a website page or sitemap for SEO issues")

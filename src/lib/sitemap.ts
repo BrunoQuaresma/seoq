@@ -1,5 +1,32 @@
 import { XMLParser } from "fast-xml-parser";
-import { sitemapSchema, sitemapIndexSchema } from "./schemas.js";
+import * as z from "zod";
+
+const sitemapUrlEntrySchema = z.object({
+  loc: z.string().url(),
+  priority: z.number().min(0).max(1).optional(),
+  changefreq: z.string().optional(),
+  lastmod: z.string().optional(),
+});
+
+const sitemapSchema = z.object({
+  urlset: z.object({
+    url: z.union([sitemapUrlEntrySchema, z.array(sitemapUrlEntrySchema)]),
+  }),
+});
+
+const sitemapIndexEntrySchema = z.object({
+  loc: z.string().url(),
+  lastmod: z.string().optional(),
+});
+
+const sitemapIndexSchema = z.object({
+  sitemapindex: z.object({
+    sitemap: z.union([
+      sitemapIndexEntrySchema,
+      z.array(sitemapIndexEntrySchema),
+    ]),
+  }),
+});
 
 export interface SitemapResult {
   url: string;
