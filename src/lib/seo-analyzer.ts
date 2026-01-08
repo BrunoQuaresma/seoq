@@ -93,7 +93,8 @@ async function fetchPageContent(url: string): Promise<string> {
 
 async function analyzeSEOIssues(
   url: string,
-  html: string
+  html: string,
+  maxIssues: number = 3
 ): Promise<SEOIssue[]> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -122,7 +123,7 @@ Analyze this page for common SEO issues including:
 
 IMPORTANT REQUIREMENTS:
 - All responses must be in English, regardless of the language of the analyzed page content
-- Return AT MOST 3 issues, prioritized by impact (most important first)
+- Return AT MOST ${maxIssues} issues, prioritized by impact (most important first)
 - Each "issue" must be just a few words describing the problem clearly
 - Each "howToFix" must be a very compact and small sentence with specific, actionable advice
 - Use simple, direct language without bullets, prefixes, or multiple sentences
@@ -150,12 +151,14 @@ If no issues are found, return an empty issues array.`;
         : undefined;
     const validated = SEOAnalysisResultSchema.parse(structuredUnknown);
 
-    // Post-process: cap at 3 issues and normalize to single sentences
-    const normalizedIssues = validated.issues.slice(0, 3).map((issue) => ({
-      issue: normalizeSentence(issue.issue),
-      severity: issue.severity,
-      howToFix: normalizeSentence(issue.howToFix),
-    }));
+    // Post-process: cap at maxIssues and normalize to single sentences
+    const normalizedIssues = validated.issues
+      .slice(0, maxIssues)
+      .map((issue) => ({
+        issue: normalizeSentence(issue.issue),
+        severity: issue.severity,
+        howToFix: normalizeSentence(issue.howToFix),
+      }));
 
     return normalizedIssues;
   } catch (error) {
@@ -202,11 +205,13 @@ export async function analyzePages(
   urls: string[],
   options: {
     concurrency?: number;
+    maxIssues?: number;
     onProgress?: (current: number, total: number, url: string) => void;
     onComplete?: (url: string, issueCount: number) => void;
   } = {}
 ): Promise<PageAnalysisResult[]> {
   const concurrency = options.concurrency ?? 1;
+  const maxIssues = options.maxIssues ?? 3;
   const limit = pLimit(concurrency);
   const total = urls.length;
 
@@ -220,7 +225,7 @@ export async function analyzePages(
       }
 
       const html = await fetchPageContent(url);
-      const issues = await analyzeSEOIssues(url, html);
+      const issues = await analyzeSEOIssues(url, html, maxIssues);
       results.push({ url, issues });
 
       // Report completion

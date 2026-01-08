@@ -30,3 +30,5 @@ export const sitemapIndexSchema = z.object({
 });
 
 export const limitSchema = z.number().int().min(1).max(100);
+
+export const maxIssuesSchema = z.number().int().min(1).max(50);

@@ -4,7 +4,7 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
 import { analyzePages } from "../lib/seo-analyzer.js";
-import { urlSchema, limitSchema } from "../lib/schemas.js";
+import { urlSchema, limitSchema, maxIssuesSchema } from "../lib/schemas.js";
 
 export const analyzeCommand = new Command("analyze")
   .description("Analyze a website page or sitemap for SEO issues")
@@ -23,6 +23,11 @@ export const analyzeCommand = new Command("analyze")
     "Number of pages to analyze concurrently when using --sitemap (default: 1)",
     "1"
   )
+  .option(
+    "-m, --max-issues <number>",
+    "Maximum number of issues to return per page (default: 3, min: 1, max: 50)",
+    "3"
+  )
   .alias("a")
   .action(
     async (
@@ -31,6 +36,7 @@ export const analyzeCommand = new Command("analyze")
         sitemap?: string | boolean;
         limit: string;
         concurrency: string;
+        maxIssues: string;
       }
     ) => {
       let sitemapSpinner: Ora | null = null;
@@ -39,6 +45,10 @@ export const analyzeCommand = new Command("analyze")
       try {
         // Validate URL
         urlSchema.parse(url);
+
+        // Validate and parse maxIssues
+        const maxIssues = parseInt(options.maxIssues, 10);
+        maxIssuesSchema.parse(maxIssues);
 
         // Check if sitemap flag is present
         const useSitemap =
@@ -78,6 +88,7 @@ export const analyzeCommand = new Command("analyze")
           }).start();
 
           const analysisResults = await analyzePages([url], {
+            maxIssues,
             onProgress: () => {
               // No progress updates needed for single page
             },
@@ -180,6 +191,7 @@ export const analyzeCommand = new Command("analyze")
 
         const analysisResults = await analyzePages(urls, {
           concurrency,
+          maxIssues,
           onProgress: (current: number, total: number, pageUrl: string) => {
             if (analysisSpinner) {
               analysisSpinner.text = chalk.cyan(
