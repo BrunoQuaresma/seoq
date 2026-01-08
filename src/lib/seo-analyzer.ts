@@ -2,8 +2,9 @@ import { ChatOpenAI } from "@langchain/openai";
 import * as cheerio from "cheerio";
 import { createAgent, providerStrategy } from "langchain";
 import pLimit from "p-limit";
-import { chromium, type Browser } from "playwright";
+import { type Browser } from "playwright";
 import * as z from "zod";
+import { fetchPageContent, launchBrowser } from "./page-fetcher.js";
 
 export const SEOIssueSchema = z.object({
   issue: z.string().describe("A clear description of the SEO issue"),
@@ -48,100 +49,36 @@ function normalizeSentence(text: string): string {
   return normalized;
 }
 
-async function fetchPageContent(
-  url: string,
-  browser?: Browser
-): Promise<string> {
-  let shouldCloseBrowser = false;
-  let pageBrowser = browser;
+/**
+ * Cleans HTML content for SEO analysis by removing non-SEO relevant tags and content.
+ * - Removes HTML comments
+ * - Removes script tags except those with type="application/ld+json"
+ * - Removes style tags
+ * - Removes noscript tags
+ *
+ * @param html - Raw HTML content to clean
+ * @returns Cleaned HTML content suitable for SEO analysis
+ */
+function cleanHtmlForSEO(html: string): string {
+  // Remove HTML comments first (before parsing with cheerio)
+  const cleanedHtml = html.replace(/<!--[\s\S]*?-->/g, "");
 
-  try {
-    // Launch browser if not provided
-    if (!pageBrowser) {
-      pageBrowser = await chromium.launch();
-      shouldCloseBrowser = true;
+  const $ = cheerio.load(cleanedHtml);
+
+  // Remove non-SEO relevant tags and content
+  // Keep application/ld+json scripts as they contain structured data important for SEO
+  $("script").each((_, element) => {
+    const type = $(element).attr("type");
+    // Remove script if it doesn't have type="application/ld+json" (case-insensitive)
+    if (!type || type.toLowerCase() !== "application/ld+json") {
+      $(element).remove();
     }
+  });
+  $("style").remove();
+  $("noscript").remove();
 
-    // Create a new page
-    const page = await pageBrowser.newPage();
-
-    try {
-      // Navigate to the URL with networkidle wait condition
-      await page.goto(url, {
-        waitUntil: "networkidle",
-        timeout: 30000, // 30 second timeout
-      });
-
-      // Get the rendered HTML content
-      let html = await page.content();
-
-      // Close the page
-      await page.close();
-
-      // Remove HTML comments first (before parsing with cheerio)
-      html = html.replace(/<!--[\s\S]*?-->/g, "");
-
-      const $ = cheerio.load(html);
-
-      // Remove non-SEO relevant tags and content
-      // Keep application/ld+json scripts as they contain structured data important for SEO
-      $("script").each((_, element) => {
-        const type = $(element).attr("type");
-        // Remove script if it doesn't have type="application/ld+json" (case-insensitive)
-        if (!type || type.toLowerCase() !== "application/ld+json") {
-          $(element).remove();
-        }
-      });
-      $("style").remove();
-      $("noscript").remove();
-
-      // Return cleaned HTML
-      return $.html();
-    } catch (pageError) {
-      // Ensure page is closed even on error
-      await page.close().catch(() => {
-        // Ignore errors when closing page on error
-      });
-      throw pageError;
-    } finally {
-      // Close browser if we created it
-      if (shouldCloseBrowser && pageBrowser) {
-        await pageBrowser.close().catch(() => {
-          // Ignore errors when closing browser
-        });
-      }
-    }
-  } catch (error) {
-    // Ensure browser is closed on error if we created it
-    if (shouldCloseBrowser && pageBrowser) {
-      await pageBrowser.close().catch(() => {
-        // Ignore errors when closing browser on error
-      });
-    }
-
-    if (error instanceof Error) {
-      // Handle navigation timeout
-      if (
-        error.message.includes("timeout") ||
-        error.message.includes("Timeout")
-      ) {
-        throw new Error(
-          `Failed to fetch page content: Navigation timeout after 30s. The page may be loading slowly or unresponsive.`
-        );
-      }
-      // Handle network errors
-      if (
-        error.message.includes("net::ERR") ||
-        error.message.includes("Navigation failed")
-      ) {
-        throw new Error(
-          `Failed to fetch page content: Network error. ${error.message}`
-        );
-      }
-      throw new Error(`Failed to fetch page content: ${error.message}`);
-    }
-    throw new Error("Failed to fetch page content: Unknown error");
-  }
+  // Return cleaned HTML
+  return $.html();
 }
 
 async function analyzeSEOIssues(
@@ -273,7 +210,7 @@ export async function analyzePages(
 
   try {
     // Create a single browser instance to reuse across all pages
-    browser = await chromium.launch();
+    browser = await launchBrowser();
 
     const analyzePage = async (url: string, index: number): Promise<void> => {
       try {
@@ -282,7 +219,8 @@ export async function analyzePages(
           options.onProgress(index + 1, total, url);
         }
 
-        const html = await fetchPageContent(url, browser);
+        const rawHtml = await fetchPageContent(url, browser);
+        const html = cleanHtmlForSEO(rawHtml);
         const issues = await analyzeSEOIssues(url, html, maxIssues);
         results.push({ url, issues });
 
