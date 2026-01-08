@@ -165,8 +165,7 @@ export const analyzeCommand = new Command("analyze")
   .argument("<url>", "Website URL to analyze")
   .option(
     "-s, --sitemap [path]",
-    "Enable sitemap analysis (defaults to /sitemap.xml if no path provided)",
-    "/sitemap.xml"
+    "Enable sitemap analysis (defaults to /sitemap.xml if no path provided)"
   )
   .option(
     "-l, --limit <number>",
