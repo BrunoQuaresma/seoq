@@ -1,10 +1,11 @@
 import { Command } from "commander";
-import ora, { type Ora } from "ora";
 import chalk from "chalk";
 import Table from "cli-table3";
+import { type Ora } from "ora";
 import * as z from "zod";
 import { analyzeSitemap, type SitemapResult } from "../lib/sitemap.js";
 import { analyzePages, type PageAnalysisResult } from "../lib/seo-analyzer.js";
+import { createSpinner, updateSpinner, stopSpinners } from "../lib/spinner.js";
 
 // Single unified Zod schema for analyze options
 const analyzeOptionsSchema = z.object({
@@ -26,28 +27,6 @@ const analyzeOptionsSchema = z.object({
 
 // Infer options type from schema
 type AnalyzeOptions = z.infer<typeof analyzeOptionsSchema>;
-
-// Spinner helpers
-function createSpinner(text: string): Ora {
-  return ora({
-    text: chalk.cyan(text),
-    spinner: "dots",
-  }).start();
-}
-
-function updateSpinner(spinner: Ora | null, text: string): void {
-  if (spinner) {
-    spinner.text = chalk.cyan(text);
-  }
-}
-
-function stopSpinners(...spinners: (Ora | null)[]): void {
-  for (const spinner of spinners) {
-    if (spinner) {
-      spinner.stop();
-    }
-  }
-}
 
 // Display functions
 function displayResults(results: PageAnalysisResult[]): void {
