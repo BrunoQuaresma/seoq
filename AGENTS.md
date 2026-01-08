@@ -67,3 +67,16 @@ After completing a task, agents must:
 5. **Ensure clean state**: The task is only considered complete when there are no lint errors, all files are properly formatted, and the build succeeds without errors
 
 This ensures consistent code quality, formatting, and that the code compiles successfully across the project.
+
+## Code Reusability
+
+When implementing features or fixing bugs, agents must:
+
+1. **Identify duplicate logic**: If the same logic or functionality appears in more than one place, it should be extracted into a reusable function or utility
+2. **Create library modules**: Extract shared logic into appropriate files in the `src/lib/` directory
+3. **Follow DRY principles**: Don't Repeat Yourself - avoid code duplication by creating reusable utilities
+4. **Maintain consistency**: When refactoring, ensure all places using the duplicated logic are updated to use the new shared function
+
+**Example**: If URL validation logic appears in multiple command files, extract it into `src/lib/command-utils.ts` or a dedicated utility module.
+
+This promotes maintainability, reduces bugs from inconsistent implementations, and makes the codebase easier to understand and modify.
