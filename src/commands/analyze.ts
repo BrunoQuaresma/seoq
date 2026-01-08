@@ -10,6 +10,7 @@ import {
   type PageAnalysisResult,
 } from "../lib/seo-analyzer.js";
 import { createSpinner, updateSpinner, stopSpinners } from "../lib/spinner.js";
+import { handleCommandError } from "../lib/command-utils.js";
 
 // Single unified Zod schema for analyze options
 const analyzeOptionsSchema = z.object({
@@ -226,21 +227,6 @@ export const analyzeCommand = new Command("analyze")
       // Display results
       displayResults(analysisResults);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errorMessages = error.errors
-          .map((err) => {
-            const path = err.path.join(".");
-            return path ? `${path}: ${err.message}` : err.message;
-          })
-          .join(", ");
-        console.error(chalk.red(`\nValidation Error: ${errorMessages}`));
-        process.exit(1);
-      } else if (error instanceof Error) {
-        console.error(chalk.red(`\nError: ${error.message}`));
-        process.exit(1);
-      } else {
-        console.error(chalk.red("\nAn unknown error occurred"));
-        process.exit(1);
-      }
+      handleCommandError(error);
     }
   });

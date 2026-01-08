@@ -73,16 +73,8 @@ If no keywords can be extracted, return an empty keywords array.`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const structuredUnknown =
-      typeof result === "object" &&
-      result !== null &&
-      "structuredResponse" in result
-        ? (result as { structuredResponse?: unknown }).structuredResponse
-        : undefined;
-    const validated = KeywordAnalysisResultSchema.parse(structuredUnknown);
-
     // Sort by relevance (descending) and limit to top 10
-    const sortedKeywords = validated.keywords
+    const sortedKeywords = result.structuredResponse.keywords
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, 10);
 

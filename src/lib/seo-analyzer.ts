@@ -101,16 +101,8 @@ If no issues are found, return an empty issues array.`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const structuredUnknown =
-      typeof result === "object" &&
-      result !== null &&
-      "structuredResponse" in result
-        ? (result as { structuredResponse?: unknown }).structuredResponse
-        : undefined;
-    const validated = SEOAnalysisResultSchema.parse(structuredUnknown);
-
     // Post-process: cap at maxIssues and normalize to single sentences
-    const normalizedIssues = validated.issues
+    const normalizedIssues = result.structuredResponse.issues
       .slice(0, maxIssues)
       .map((issue) => ({
         issue: normalizeSentence(issue.issue),
