@@ -2,6 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import * as cheerio from "cheerio";
 import { createAgent, providerStrategy } from "langchain";
 import pLimit from "p-limit";
+import { chromium, type Browser } from "playwright";
 import * as z from "zod";
 
 export const SEOIssueSchema = z.object({
@@ -47,44 +48,96 @@ function normalizeSentence(text: string): string {
   return normalized;
 }
 
-async function fetchPageContent(url: string): Promise<string> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; SEOQ/1.0; +https://github.com/seoq)",
-      },
-    });
+async function fetchPageContent(
+  url: string,
+  browser?: Browser
+): Promise<string> {
+  let shouldCloseBrowser = false;
+  let pageBrowser = browser;
 
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch page: ${response.status} ${response.statusText}`
-      );
+  try {
+    // Launch browser if not provided
+    if (!pageBrowser) {
+      pageBrowser = await chromium.launch();
+      shouldCloseBrowser = true;
     }
 
-    let html = await response.text();
+    // Create a new page
+    const page = await pageBrowser.newPage();
 
-    // Remove HTML comments first (before parsing with cheerio)
-    html = html.replace(/<!--[\s\S]*?-->/g, "");
+    try {
+      // Navigate to the URL with networkidle wait condition
+      await page.goto(url, {
+        waitUntil: "networkidle",
+        timeout: 30000, // 30 second timeout
+      });
 
-    const $ = cheerio.load(html);
+      // Get the rendered HTML content
+      let html = await page.content();
 
-    // Remove non-SEO relevant tags and content
-    // Keep application/ld+json scripts as they contain structured data important for SEO
-    $("script").each((_, element) => {
-      const type = $(element).attr("type");
-      // Remove script if it doesn't have type="application/ld+json" (case-insensitive)
-      if (!type || type.toLowerCase() !== "application/ld+json") {
-        $(element).remove();
+      // Close the page
+      await page.close();
+
+      // Remove HTML comments first (before parsing with cheerio)
+      html = html.replace(/<!--[\s\S]*?-->/g, "");
+
+      const $ = cheerio.load(html);
+
+      // Remove non-SEO relevant tags and content
+      // Keep application/ld+json scripts as they contain structured data important for SEO
+      $("script").each((_, element) => {
+        const type = $(element).attr("type");
+        // Remove script if it doesn't have type="application/ld+json" (case-insensitive)
+        if (!type || type.toLowerCase() !== "application/ld+json") {
+          $(element).remove();
+        }
+      });
+      $("style").remove();
+      $("noscript").remove();
+
+      // Return cleaned HTML
+      return $.html();
+    } catch (pageError) {
+      // Ensure page is closed even on error
+      await page.close().catch(() => {
+        // Ignore errors when closing page on error
+      });
+      throw pageError;
+    } finally {
+      // Close browser if we created it
+      if (shouldCloseBrowser && pageBrowser) {
+        await pageBrowser.close().catch(() => {
+          // Ignore errors when closing browser
+        });
       }
-    });
-    $("style").remove();
-    $("noscript").remove();
-
-    // Return cleaned HTML
-    return $.html();
+    }
   } catch (error) {
+    // Ensure browser is closed on error if we created it
+    if (shouldCloseBrowser && pageBrowser) {
+      await pageBrowser.close().catch(() => {
+        // Ignore errors when closing browser on error
+      });
+    }
+
     if (error instanceof Error) {
+      // Handle navigation timeout
+      if (
+        error.message.includes("timeout") ||
+        error.message.includes("Timeout")
+      ) {
+        throw new Error(
+          `Failed to fetch page content: Navigation timeout after 30s. The page may be loading slowly or unresponsive.`
+        );
+      }
+      // Handle network errors
+      if (
+        error.message.includes("net::ERR") ||
+        error.message.includes("Navigation failed")
+      ) {
+        throw new Error(
+          `Failed to fetch page content: Network error. ${error.message}`
+        );
+      }
       throw new Error(`Failed to fetch page content: ${error.message}`);
     }
     throw new Error("Failed to fetch page content: Unknown error");
@@ -216,75 +269,103 @@ export async function analyzePages(
   const total = urls.length;
 
   const results: PageAnalysisResult[] = [];
+  let browser: Browser | undefined;
 
-  const analyzePage = async (url: string, index: number): Promise<void> => {
-    try {
-      // Report progress when starting
-      if (options.onProgress) {
-        options.onProgress(index + 1, total, url);
-      }
+  try {
+    // Create a single browser instance to reuse across all pages
+    browser = await chromium.launch();
 
-      const html = await fetchPageContent(url);
-      const issues = await analyzeSEOIssues(url, html, maxIssues);
-      results.push({ url, issues });
-
-      // Report completion
-      if (options.onComplete) {
-        options.onComplete(url, issues.length);
-      }
-    } catch (error) {
-      // If page fetch or analysis fails, still add result with error issue
-      if (error instanceof Error) {
-        // Check if it's a critical error that should stop processing
-        if (
-          error.message.includes("OPENAI_API_KEY") ||
-          error.message.includes("Invalid OpenAI API key")
-        ) {
-          // Re-throw critical errors so they can be handled at the command level
-          throw error;
+    const analyzePage = async (url: string, index: number): Promise<void> => {
+      try {
+        // Report progress when starting
+        if (options.onProgress) {
+          options.onProgress(index + 1, total, url);
         }
 
-        results.push({
-          url,
-          issues: [
-            {
-              issue: `Failed to analyze page: ${error.message}`,
-              severity: "High",
-              howToFix: error.message.includes("rate limit")
-                ? "Wait a moment and try again, or reduce concurrency with --concurrency option."
-                : "Check if the URL is accessible and try again.",
-            },
-          ],
-        });
+        const html = await fetchPageContent(url, browser);
+        const issues = await analyzeSEOIssues(url, html, maxIssues);
+        results.push({ url, issues });
 
-        // Report completion even for failed pages
+        // Report completion
         if (options.onComplete) {
-          options.onComplete(url, 1); // 1 issue for the error
+          options.onComplete(url, issues.length);
         }
-      } else {
-        results.push({
-          url,
-          issues: [
-            {
-              issue: "Failed to analyze page: Unknown error",
-              severity: "High",
-              howToFix: "Check if the URL is accessible and try again.",
-            },
-          ],
-        });
+      } catch (error) {
+        // If page fetch or analysis fails, still add result with error issue
+        if (error instanceof Error) {
+          // Check if it's a critical error that should stop processing
+          if (
+            error.message.includes("OPENAI_API_KEY") ||
+            error.message.includes("Invalid OpenAI API key")
+          ) {
+            // Re-throw critical errors so they can be handled at the command level
+            throw error;
+          }
 
-        // Report completion even for failed pages
-        if (options.onComplete) {
-          options.onComplete(url, 1); // 1 issue for the error
+          results.push({
+            url,
+            issues: [
+              {
+                issue: `Failed to analyze page: ${error.message}`,
+                severity: "High",
+                howToFix: error.message.includes("rate limit")
+                  ? "Wait a moment and try again, or reduce concurrency with --concurrency option."
+                  : "Check if the URL is accessible and try again.",
+              },
+            ],
+          });
+
+          // Report completion even for failed pages
+          if (options.onComplete) {
+            options.onComplete(url, 1); // 1 issue for the error
+          }
+        } else {
+          results.push({
+            url,
+            issues: [
+              {
+                issue: "Failed to analyze page: Unknown error",
+                severity: "High",
+                howToFix: "Check if the URL is accessible and try again.",
+              },
+            ],
+          });
+
+          // Report completion even for failed pages
+          if (options.onComplete) {
+            options.onComplete(url, 1); // 1 issue for the error
+          }
         }
       }
+    };
+
+    // Process all URLs with concurrency limit
+    await Promise.all(
+      urls.map((url, index) => limit(() => analyzePage(url, index)))
+    );
+  } catch (error) {
+    // Re-throw critical errors (e.g., browser launch failures)
+    if (error instanceof Error) {
+      // Check if it's a browser launch error
+      if (
+        error.message.includes("browser") ||
+        error.message.includes("playwright")
+      ) {
+        throw new Error(
+          `Failed to launch browser: ${error.message}. Ensure Playwright browsers are installed with 'npx playwright install chromium'.`
+        );
+      }
+      throw error;
     }
-  };
-
-  // Process all URLs with concurrency limit
-  await Promise.all(
-    urls.map((url, index) => limit(() => analyzePage(url, index)))
-  );
+    throw error;
+  } finally {
+    // Ensure browser is always closed
+    if (browser) {
+      await browser.close().catch(() => {
+        // Ignore errors when closing browser
+      });
+    }
+  }
 
   return results;
 }
