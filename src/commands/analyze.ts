@@ -6,27 +6,31 @@ import { analyzePages } from "../lib/seo-analyzer.js";
 import { urlSchema, limitSchema } from "../lib/schemas.js";
 
 export const analyzeCommand = new Command("analyze")
-  .description("Analyze a website's sitemap.xml for SEO issues")
+  .description("Analyze a website page or sitemap for SEO issues")
   .argument("<url>", "Website URL to analyze")
   .option(
-    "-s, --sitemap <path>",
-    "Custom sitemap path (defaults to /sitemap.xml)"
+    "-s, --sitemap [path]",
+    "Enable sitemap analysis (defaults to /sitemap.xml if no path provided)"
   )
   .option(
     "-l, --limit <number>",
-    "Maximum number of links to analyze (default: 25, min: 1, max: 100)",
+    "Maximum number of links to analyze when using --sitemap (default: 25, min: 1, max: 100)",
     "25"
   )
   .option(
     "-c, --concurrency <number>",
-    "Number of pages to analyze concurrently (default: 1)",
+    "Number of pages to analyze concurrently when using --sitemap (default: 1)",
     "1"
   )
   .alias("a")
   .action(
     async (
       url: string,
-      options: { sitemap?: string; limit: string; concurrency: string }
+      options: {
+        sitemap?: string | boolean;
+        limit: string;
+        concurrency: string;
+      }
     ) => {
       let sitemapSpinner: Ora | null = null;
       let analysisSpinner: Ora | null = null;
@@ -35,7 +39,91 @@ export const analyzeCommand = new Command("analyze")
         // Validate URL
         urlSchema.parse(url);
 
-        // Validate and parse limit
+        // Check if sitemap flag is present
+        const useSitemap =
+          options.sitemap !== undefined && options.sitemap !== false;
+
+        // If not using sitemap, check for limit/concurrency and show warning
+        if (!useSitemap) {
+          // Check if --limit or --concurrency were explicitly provided in command line
+          const args = process.argv;
+          const hasLimitFlag = args.some(
+            (arg) =>
+              arg === "--limit" ||
+              arg === "-l" ||
+              arg.startsWith("--limit=") ||
+              arg.startsWith("-l=")
+          );
+          const hasConcurrencyFlag = args.some(
+            (arg) =>
+              arg === "--concurrency" ||
+              arg === "-c" ||
+              arg.startsWith("--concurrency=") ||
+              arg.startsWith("-c=")
+          );
+
+          if (hasLimitFlag || hasConcurrencyFlag) {
+            console.log(
+              chalk.yellow(
+                "Warning: --limit and --concurrency options are only used with --sitemap flag. Ignoring these options for single page analysis."
+              )
+            );
+          }
+
+          // Analyze single page
+          analysisSpinner = ora({
+            text: chalk.cyan(`Analyzing page ${chalk.bold(url)}...`),
+            spinner: "dots",
+          }).start();
+
+          const analysisResults = await analyzePages([url], {
+            onProgress: () => {
+              // No progress updates needed for single page
+            },
+            onComplete: () => {
+              // No completion updates needed for single page
+            },
+          });
+
+          analysisSpinner.succeed(
+            chalk.green(`Analysis complete for ${chalk.bold(url)}.`)
+          );
+          analysisSpinner = null;
+
+          // Display results
+          console.log(); // Empty line before results
+          for (const result of analysisResults) {
+            // Skip pages with no issues
+            if (result.issues.length === 0) {
+              continue;
+            }
+
+            // Display URL
+            console.log(chalk.bold.underline(result.url));
+            console.log();
+
+            // Display each issue
+            for (const issue of result.issues) {
+              const severityColor =
+                issue.severity === "High"
+                  ? chalk.red
+                  : issue.severity === "Medium"
+                    ? chalk.yellow
+                    : chalk.blue;
+              console.log(
+                `${severityColor(chalk.bold(issue.severity))} ${chalk.white(issue.issue)}`
+              );
+              console.log(chalk.gray(issue.howToFix));
+              console.log();
+            }
+
+            // Empty line between different URLs
+            console.log();
+          }
+          return;
+        }
+
+        // Sitemap mode: validate and parse limit
         const limit = parseInt(options.limit, 10);
         limitSchema.parse(limit);
 
@@ -46,17 +134,20 @@ export const analyzeCommand = new Command("analyze")
         }
 
         // Fetch sitemap with spinner
-        const sitemapPath = options.sitemap || "/sitemap.xml";
+        const sitemapPath =
+          typeof options.sitemap === "string"
+            ? options.sitemap
+            : "/sitemap.xml";
         const sitemapUrl = new URL(sitemapPath, url).toString();
         sitemapSpinner = ora({
           text: chalk.cyan(`Fetching sitemap from ${sitemapUrl}...`),
           spinner: "dots",
         }).start();
 
-        // Analyze sitemap (defaults to /sitemap.xml if not provided)
+        // Analyze sitemap
         const sitemapResults = await analyzeSitemap(
           url,
-          options.sitemap,
+          typeof options.sitemap === "string" ? options.sitemap : undefined,
           limit
         );
 
