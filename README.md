@@ -2,6 +2,8 @@
 
 A powerful command-line tool for SEO analysis, comparison, and optimization. SEOQ helps you analyze websites, compare them with competitors, extract keywords, and identify SEO improvement opportunities using AI-powered analysis.
 
+[![SEOQ demo video](./demo-thumb.png)](./demo.mp4)
+
 ## Usage
 
 SEOQ runs directly via `npx` - no installation required! Just make sure you have `npx` available (comes with Node.js).
